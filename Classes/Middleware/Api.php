@@ -11,8 +11,8 @@ use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\TypoScript\TemplateService;
 use TYPO3\CMS\Core\TypoScript\TypoScriptService;
-use TYPO3\CMS\Fluid\View\TemplatePaths;
 use TYPO3\CMS\Fluid\View\StandaloneView;
+use TYPO3\CMS\Fluid\View\TemplatePaths;
 
 class Api implements MiddlewareInterface
 {
@@ -112,7 +112,11 @@ class Api implements MiddlewareInterface
 
         $pluginConfiguration = $this->typoScriptService->convertTypoScriptArrayToPlainArray($setup['plugin.']['tx_' . strtolower($extension) . '.']);
 
-        $templatePaths = new TemplatePaths($pluginConfiguration['view']);
+        $templatePaths = new TemplatePaths([
+            'layoutRootPaths'   => $pluginConfiguration['view']['layoutRootPath'] ? [$pluginConfiguration['view']['layoutRootPath']] : null ?? $pluginConfiguration['view']['layoutRootPaths'] ?? [],
+            'templateRootPaths' => $pluginConfiguration['view']['templateRootPath'] ? [$pluginConfiguration['view']['templateRootPath']] : null ?? $pluginConfiguration['view']['templateRootPaths'] ?? [],
+            'partialRootPaths'  => $pluginConfiguration['view']['partialRootPath'] ? [$pluginConfiguration['view']['partialRootPath']] : null ?? $pluginConfiguration['view']['partialRootPaths'] ?? [],
+        ]);
 
         $view = GeneralUtility::makeInstance(StandaloneView::class);
         $view->getRenderingContext()->setTemplatePaths($templatePaths);
