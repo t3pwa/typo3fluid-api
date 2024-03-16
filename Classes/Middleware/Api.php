@@ -9,19 +9,14 @@ use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\TypoScript\TemplateService;
 use TYPO3\CMS\Core\TypoScript\TypoScriptService;
-use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
 use TYPO3\CMS\Fluid\View\TemplatePaths;
 use TYPO3\CMS\Fluid\View\StandaloneView;
 
 class Api implements MiddlewareInterface
 {
     protected $extKey = 'typo3fluid_api';
-
-    /**
-     * @var \TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface
-     */
-    protected $configurationManager;
 
     /**
      * @var \TYPO3\CMS\Core\Configuration\ExtensionConfiguration
@@ -32,12 +27,10 @@ class Api implements MiddlewareInterface
     private $responseFactory;
 
     public function __construct(
-        ConfigurationManagerInterface $configurationManager,
         ExtensionConfiguration $extensionConfiguration,
         ResponseFactoryInterface $responseFactory,
         TypoScriptService $typoScriptService
     ) {
-        $this->configurationManager = $configurationManager;
         $this->extensionConfiguration = $extensionConfiguration;
         $this->responseFactory = $responseFactory;
         $this->typoScriptService = $typoScriptService;
@@ -105,9 +98,13 @@ class Api implements MiddlewareInterface
 
     private function parseTemplate(String $extension, $template, $partial, $section, $arguments)
     {
-        $setup = $this->configurationManager->getConfiguration(
-            ConfigurationManagerInterface::CONFIGURATION_TYPE_FULL_TYPOSCRIPT
-        );
+        $templateService = GeneralUtility::makeInstance(TemplateService::class);
+        $templateService->tt_track = false;
+        $templateService->setProcessExtensionStatics(true);
+        $templateService->runThroughTemplates([], 0);
+        $templateService->generateConfig();
+
+        $setup = $templateService->setup;
 
         if (empty($setup['plugin.']['tx_' . strtolower($extension) . '.'])) {
             return "Could not find any configuration for the extension key `$extension`.";
