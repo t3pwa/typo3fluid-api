@@ -7,12 +7,16 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Routing\PageArguments;
 use TYPO3\CMS\Core\TypoScript\TemplateService;
 use TYPO3\CMS\Core\TypoScript\TypoScriptService;
 use TYPO3\CMS\Fluid\View\StandaloneView;
 use TYPO3\CMS\Fluid\View\TemplatePaths;
+use TYPO3\CMS\Frontend\Authentication\FrontendUserAuthentication;
+use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
 
 class Api implements MiddlewareInterface
 {
@@ -85,7 +89,7 @@ class Api implements MiddlewareInterface
             ]);
         }
 
-        $GLOBALS['TYPO3_REQUEST'] = $request;
+        $this->setGlobals($request);
 
         return $this->buildResponse([
             "data" => $this->parseTemplate(
@@ -96,6 +100,34 @@ class Api implements MiddlewareInterface
                 !empty($requestBody['arguments']) ? $requestBody['arguments'] : []
             )
         ]);
+    }
+
+    private function setGlobals(ServerRequestInterface $request) {
+        $pageArguments = new PageArguments(0, '0', []);
+        $frontendUser = GeneralUtility::makeInstance(FrontendUserAuthentication::class);
+
+        $request = $request->withAttribute('routing', $pageArguments);
+        $request = $request->withAttribute('frontend.user', $frontendUser);
+        $request = $request->withAttribute('noCache', false);
+
+        $context = new Context();
+        $site = $request->getAttribute('site', null);
+        $controller = GeneralUtility::makeInstance(
+            TypoScriptFrontendController::class,
+            $context,
+            $site,
+            $request->getAttribute('language', $site->getDefaultLanguage()),
+            $pageArguments,
+            $frontendUser
+        );
+        $controller->tmpl = GeneralUtility::makeInstance(TemplateService::class, $context, null, $controller);
+        $controller->no_cache = true;
+        $controller->determineId($request);
+
+        $request = $request->withAttribute('frontend.controller', $controller);
+
+        $GLOBALS['TSFE'] = $controller;
+        $GLOBALS['TYPO3_REQUEST'] = $request;
     }
 
     private function parseTemplate(String $extension, $template, $partial, $section, $arguments)
