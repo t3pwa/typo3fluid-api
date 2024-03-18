@@ -85,6 +85,8 @@ class Api implements MiddlewareInterface
             ]);
         }
 
+        $GLOBALS['TYPO3_REQUEST'] = $request;
+
         return $this->buildResponse([
             "data" => $this->parseTemplate(
                 $requestBody['extension'],
