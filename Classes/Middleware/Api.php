@@ -110,11 +110,11 @@ class Api implements MiddlewareInterface
             ]);
         }
 
-/*
-        return $this->buildResponse([
-            var_dump( $request )
-            ]);
-*/
+        /*
+                return $this->buildResponse([
+                    var_dump( $request )
+                    ]);
+        */
 
 //        $body = $this->headlessUserInt->unwrap($response->getBody()->__toString());
 //        $stream = new Stream('php://temp', 'r+');
